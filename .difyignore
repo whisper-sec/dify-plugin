@@ -1,0 +1,7 @@
+.env
+.env.example
+*.difypkg
+__pycache__/
+*.pyc
+.git/
+SUBMISSION.md

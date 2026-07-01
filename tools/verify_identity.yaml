@@ -1,0 +1,22 @@
+identity:
+  name: verify_identity
+  author: whisper-sec
+  label:
+    en_US: Verify Agent Identity
+description:
+  human:
+    en_US: Verify whether an IPv6 address is a genuine Whisper agent identity and return the full verdict.
+  llm: Verify whether an IP address is a genuine Whisper AI-agent identity. Returns a verdict (`is_whisper_agent`) plus the supporting evidence (PTR / reverse DNS and confirming forward AAAA). Use this to answer "is this agent who it claims to be?". Keyless and anonymous - no API key or account needed.
+parameters:
+  - name: address
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: Agent IPv6 Address
+    human_description:
+      en_US: The IPv6 (or IPv4) address to check, e.g. 2a04:2a01:b69a:6717:e3b0:51ff:3bf7:f478. Whisper agent addresses live in 2a04:2a01::/32 (AS219419).
+    llm_description: The IP address to verify. IPv6 in compressed or expanded form, or an IPv4 literal.
+extra:
+  python:
+    source: tools/verify_identity.py

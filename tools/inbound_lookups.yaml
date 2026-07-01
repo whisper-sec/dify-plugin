@@ -1,0 +1,22 @@
+identity:
+  name: inbound_lookups
+  author: whisper-sec
+  label:
+    en_US: Get Inbound Lookups
+description:
+  human:
+    en_US: Retrieve the inbound lookup feed - who has recently verified or resolved this Whisper agent IPv6 address.
+  llm: Retrieve the inbound lookup feed for an IP address - the record of who has recently verified or resolved a Whisper agent identity. Use this for observability and abuse detection ("who has been checking this agent?"). Keyless and anonymous.
+parameters:
+  - name: address
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: Agent IPv6 Address
+    human_description:
+      en_US: The IPv6 (or IPv4) address whose inbound lookups you want, e.g. 2a04:2a01:b69a:6717:e3b0:51ff:3bf7:f478.
+    llm_description: The IP address whose inbound lookup feed to fetch. IPv6 in compressed or expanded form, or an IPv4 literal.
+extra:
+  python:
+    source: tools/inbound_lookups.py

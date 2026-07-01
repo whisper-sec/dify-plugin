@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" role="img" aria-label="Whisper">
+  <defs>
+    <linearGradient id="w" x1="72" y1="72" x2="184" y2="184" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B794FF"/>
+      <stop offset="1" stop-color="#7A40FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="#0A0510"/>
+  <circle cx="128" cy="128" r="82" stroke="url(#w)" stroke-width="4" opacity="0.16"/>
+  <circle cx="128" cy="128" r="58" stroke="url(#w)" stroke-width="5" opacity="0.32"/>
+  <circle cx="128" cy="128" r="34" stroke="url(#w)" stroke-width="6" opacity="0.60"/>
+  <circle cx="128" cy="128" r="13" fill="url(#w)"/>
+</svg>

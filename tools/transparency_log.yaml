@@ -1,0 +1,22 @@
+identity:
+  name: transparency_log
+  author: whisper-sec
+  label:
+    en_US: Get Transparency Log
+description:
+  human:
+    en_US: Retrieve the tamper-evident, hash-chained identity issuance log for a Whisper agent IPv6 address.
+  llm: Retrieve the transparency log for an IP address - the tamper-evident, hash-chained history of identity issuance and rotation events for a Whisper agent, with a signed root (root_hash, root_signature) and a public verifiable-ledger inclusion proof. Use this to audit an agent's identity history or prove it has not been silently changed. Keyless and anonymous.
+parameters:
+  - name: address
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: Agent IPv6 Address
+    human_description:
+      en_US: The IPv6 (or IPv4) address whose issuance history you want, e.g. 2a04:2a01:b69a:6717:e3b0:51ff:3bf7:f478.
+    llm_description: The IP address whose transparency log to fetch. IPv6 in compressed or expanded form, or an IPv4 literal.
+extra:
+  python:
+    source: tools/transparency_log.py

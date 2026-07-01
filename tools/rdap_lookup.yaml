@@ -1,0 +1,22 @@
+identity:
+  name: rdap_lookup
+  author: whisper-sec
+  label:
+    en_US: Lookup RDAP Record
+description:
+  human:
+    en_US: Fetch the IP-anchored RDAP registry record for a Whisper agent IPv6 address.
+  llm: Fetch the RDAP (Registration Data Access Protocol) record for an IP address - the structured registry record for a Whisper agent identity, anchored to its IPv6 /128. Returns RFC 9083 RDAP JSON (handle, network, entities, remarks, links). A 404 RDAP error object means the address anchors no Whisper agent. Keyless and anonymous.
+parameters:
+  - name: address
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: Agent IPv6 Address
+    human_description:
+      en_US: The IPv6 (or IPv4) address to resolve, e.g. 2a04:2a01:b69a:6717:e3b0:51ff:3bf7:f478.
+    llm_description: The IP address to look up in RDAP. IPv6 in compressed or expanded form, or an IPv4 literal.
+extra:
+  python:
+    source: tools/rdap_lookup.py

@@ -1,0 +1,19 @@
+identity:
+  author: whisper-sec
+  name: whisper
+  label:
+    en_US: Whisper
+  description:
+    en_US: Keyless, anonymous verification and resolution of Whisper AI-agent identities on the wire - verdict, RDAP record, tamper-evident issuance log, and inbound lookup feed for any IPv6 address.
+  icon: icon.svg
+  tags:
+    - utilities
+credentials_for_provider: {}
+tools:
+  - tools/verify_identity.yaml
+  - tools/rdap_lookup.yaml
+  - tools/transparency_log.yaml
+  - tools/inbound_lookups.yaml
+extra:
+  python:
+    source: provider/whisper.py
