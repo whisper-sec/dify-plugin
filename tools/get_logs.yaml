@@ -1,0 +1,75 @@
+identity:
+  name: get_logs
+  author: whisper-sec
+  label:
+    en_US: Get Logs
+description:
+  human:
+    en_US: Query recent DNS / connection / allocation activity for your tenant. Requires your Whisper API key.
+  llm: Query recent activity for your tenant from warm storage (op:logs) - DNS resolutions, egress connections, and identity allocations. Narrow by agent, kind, and a time window. Returns event rows (ts, kind, qname, decision, source, bytes, …). Requires the account's Whisper API key.
+parameters:
+  - name: agent
+    type: string
+    required: false
+    form: llm
+    label:
+      en_US: Agent
+    human_description:
+      en_US: Narrow to one agent (its id or /128 address). Leave blank for the whole tenant.
+    llm_description: Optional agent selector - an agent id or its /128 address. Omit for all agents in the tenant.
+  - name: kind
+    type: select
+    required: false
+    form: llm
+    label:
+      en_US: Kind
+    options:
+      - value: all
+        label:
+          en_US: All
+      - value: dns
+        label:
+          en_US: DNS
+      - value: conn
+        label:
+          en_US: Connections
+      - value: alloc
+        label:
+          en_US: Allocations
+    default: all
+    human_description:
+      en_US: Which event kind to return (All interleaves every kind).
+    llm_description: Event kind to return - dns, conn, alloc, or all.
+  - name: from
+    type: string
+    required: false
+    form: llm
+    label:
+      en_US: From
+    human_description:
+      en_US: "Window start - a relative offset (e.g. -1h), epoch-ms, or RFC-3339 timestamp."
+    llm_description: Window start - a relative offset like -1h, epoch-ms, or an RFC-3339 timestamp.
+  - name: to
+    type: string
+    required: false
+    form: llm
+    label:
+      en_US: To
+    human_description:
+      en_US: "Window end - epoch-ms, RFC-3339, or now."
+    llm_description: Window end - epoch-ms, RFC-3339, or now.
+  - name: limit
+    type: number
+    required: false
+    form: llm
+    min: 1
+    max: 10000
+    default: 1000
+    label:
+      en_US: Limit
+    human_description:
+      en_US: Max rows to return (cap 10000).
+    llm_description: Maximum number of rows to return (cap 10000).
+extra:
+  python:
+    source: tools/get_logs.py

@@ -1,0 +1,42 @@
+identity:
+  name: get_egress
+  author: whisper-sec
+  label:
+    en_US: Get Egress Config
+description:
+  human:
+    en_US: Get an agent's egress connect details bound to its /128. Secret proxy credentials are stripped by default - run `whisper connect` on the Dify host for actual egress. Requires your Whisper API key.
+  llm: Get a Whisper agent's egress configuration bound to its routable /128 (op:connect) so its traffic sources from that identity. Returns the tier, address and fqdn plus a proxy_hint. For safety the raw egress bearer / WireGuard private key are NEVER returned (they would leak into workflow data and logs); to bring up real egress, run `whisper connect` on the Dify host and point the plugin's egress_proxy credential (or the container HTTP_PROXY) at the local proxy it prints. Requires the account's Whisper API key. See EGRESS.md.
+parameters:
+  - name: agent
+    type: string
+    required: false
+    form: llm
+    label:
+      en_US: Agent
+    human_description:
+      en_US: Bind the egress to this agent (its id or /128). Blank uses the server reuse-most-recent default.
+    llm_description: Optional agent selector - an agent id or its /128 address. Omit for the server reuse-most-recent default.
+  - name: tier
+    type: select
+    required: false
+    form: llm
+    label:
+      en_US: Tier
+    options:
+      - value: socks5
+        label:
+          en_US: SOCKS5 (Tier 1.5, default)
+      - value: wireguard
+        label:
+          en_US: WireGuard (Tier 1, routed /128)
+      - value: anyip
+        label:
+          en_US: AnyIP (Tier 1.5)
+    default: socks5
+    human_description:
+      en_US: The egress tier to request.
+    llm_description: The egress tier - socks5 (default), wireguard, or anyip.
+extra:
+  python:
+    source: tools/get_egress.py

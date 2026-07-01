@@ -1,12 +1,12 @@
 author: whisper-sec
 name: whisper-agent-identity
-version: 0.0.1
+version: 0.1.0
 type: plugin
 icon: icon.svg
 label:
   en_US: Whisper Agent Identity
 description:
-  en_US: Verify and resolve AI-agent identities on the wire. Keyless, anonymous lookups against Whisper's public identity API - is this IPv6 address a genuine Whisper agent, who operates it, what is its RDAP registry record, its tamper-evident issuance log, and who has been looking it up? No API key or account required.
+  en_US: Give AI agents a real, routable IPv6 identity. Keyless and anonymous for anyone - is this IPv6 address a genuine Whisper agent, who operates it, its RDAP record, its tamper-evident issuance log, who has looked it up. Add your Whisper API key to unlock the control plane - register agents with their own /128 and key, set DNS policy, read logs, revoke, and get egress config so a self-hosted agent's traffic sources from its /128.
 created_at: "2026-07-01T00:00:00Z"
 resource:
   memory: 1048576
@@ -17,7 +17,7 @@ plugins:
   tools:
     - provider/whisper.yaml
 meta:
-  version: 0.0.1
+  version: 0.1.0
   arch:
     - amd64
     - arm64

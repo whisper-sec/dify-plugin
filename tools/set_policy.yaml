@@ -1,0 +1,51 @@
+identity:
+  name: set_policy
+  author: whisper-sec
+  label:
+    en_US: Set Policy
+description:
+  human:
+    en_US: Set or read your per-tenant DNS resolver policy - a default action plus allow/deny lists. Requires your Whisper API key.
+  llm: Set your per-tenant DNS resolver policy (op:policy) - a default action (allow or deny) plus block and allow lists (max 1000 combined). List entries are plain names (ads.example.com) or policy bundle tokens like `tor-exits` or `geo:deny:RU,KP`. With NO default and NO list entries this READS the current policy back. Returns key/value rows. Requires the account's Whisper API key.
+parameters:
+  - name: default_action
+    type: select
+    required: false
+    form: llm
+    label:
+      en_US: Default Action
+    options:
+      - value: unchanged
+        label:
+          en_US: Leave unchanged (read current policy)
+      - value: allow
+        label:
+          en_US: Allow
+      - value: deny
+        label:
+          en_US: Deny
+    default: unchanged
+    human_description:
+      en_US: The default action for names not on a list. Leave unchanged (with empty lists) to just read the current policy.
+    llm_description: The default action for names not on a list - allow or deny. Use 'unchanged' to leave it as-is (with empty lists this just reads the current policy).
+  - name: block
+    type: string
+    required: false
+    form: llm
+    label:
+      en_US: Block List
+    human_description:
+      en_US: "Names to block, comma- or newline-separated (e.g. ads.example.com, tracker.example.net, tor-exits, geo:deny:RU,KP)."
+    llm_description: Names or policy-bundle tokens to block, comma-separated. Accepts hostnames, category tokens (e.g. tor-exits) and geo tokens (e.g. geo:deny:RU,KP).
+  - name: allow
+    type: string
+    required: false
+    form: llm
+    label:
+      en_US: Allow List
+    human_description:
+      en_US: "Names to allow, comma- or newline-separated (e.g. api.openai.com, github.com)."
+    llm_description: Names to allow, comma-separated.
+extra:
+  python:
+    source: tools/set_policy.py

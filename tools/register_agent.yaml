@@ -1,0 +1,31 @@
+identity:
+  name: register_agent
+  author: whisper-sec
+  label:
+    en_US: Register Agent
+description:
+  human:
+    en_US: Mint a brand-new Whisper agent with its own routable IPv6 /128 identity and its own API key. Requires your Whisper API key.
+  llm: Register a brand-new Whisper agent (op:register). Mints the agent, allocates it a real routable IPv6 /128 identity, and issues it its OWN API key - returned ONCE, so capture it. Use this to provision an agent on the Whisper network. Returns agent, address (the /128), fqdn, ptr, state, and api_key. Requires the account's Whisper API key (configured in the plugin's credentials).
+parameters:
+  - name: name
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: Agent Name
+    human_description:
+      en_US: The agent's human name (maps to the server label surfaced by List and RDAP), e.g. scout.
+    llm_description: The human name for the new agent. Required.
+  - name: contact_email
+    type: string
+    required: false
+    form: llm
+    label:
+      en_US: Contact Email
+    human_description:
+      en_US: Optional public contact email (opt-in) - surfaced in the agent's RDAP record.
+    llm_description: Optional public contact email for the agent, surfaced in RDAP. Omit if not wanted.
+extra:
+  python:
+    source: tools/register_agent.py

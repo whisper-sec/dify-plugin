@@ -11,7 +11,9 @@ class InboundLookupsTool(Tool):
         self, tool_parameters: dict[str, Any]
     ) -> Generator[ToolInvokeMessage, None, None]:
         address = normalize_address(tool_parameters)
-        result = whisper_get(f"/ip/{address}/lookups")
+        result = whisper_get(
+            f"/ip/{address}/lookups", credentials=self.runtime.credentials
+        )
 
         count = result.get("count", 0)
         yield self.create_text_message(

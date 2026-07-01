@@ -1,0 +1,43 @@
+# Whisper egress override for a self-hosted Dify deployment.
+#
+# Routes Dify's plugin daemon, API and worker outbound traffic through a Whisper
+# agent's routable /128, using the local proxy printed by `whisper connect` on the
+# Dify host. See EGRESS.md.
+#
+#   # On the host:
+#   curl https://get.whisper.online | sh
+#   whisper login
+#   whisper connect --port 1080          # → socks5h://127.0.0.1:1080 (bound to your /128)
+#
+#   # Then, next to Dify's docker-compose.yaml:
+#   docker compose -f docker-compose.yaml -f egress.compose.yaml up -d
+#
+# `host.docker.internal` is how a container reaches the host's loopback proxy on
+# Docker Desktop. On plain Linux, add for each service below:
+#   extra_hosts: ["host.docker.internal:host-gateway"]
+# or replace it with your host's bridge IP.
+
+x-whisper-egress: &whisper-egress
+  # socks5h:// resolves DNS at the proxy (do not use socks5://).
+  HTTP_PROXY: "socks5h://host.docker.internal:1080"
+  HTTPS_PROXY: "socks5h://host.docker.internal:1080"
+  ALL_PROXY: "socks5h://host.docker.internal:1080"
+  # Keep intra-cluster and local calls OFF the proxy.
+  NO_PROXY: "localhost,127.0.0.1,::1,db,redis,weaviate,qdrant,sandbox,plugin_daemon,api,worker,ssrf_proxy,nginx"
+
+services:
+  plugin_daemon:
+    environment:
+      <<: *whisper-egress
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  api:
+    environment:
+      <<: *whisper-egress
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  worker:
+    environment:
+      <<: *whisper-egress
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

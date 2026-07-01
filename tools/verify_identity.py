@@ -11,7 +11,11 @@ class VerifyIdentityTool(Tool):
         self, tool_parameters: dict[str, Any]
     ) -> Generator[ToolInvokeMessage, None, None]:
         address = normalize_address(tool_parameters)
-        result = whisper_get("/verify-identity", params={"ip": address})
+        result = whisper_get(
+            "/verify-identity",
+            params={"ip": address},
+            credentials=self.runtime.credentials,
+        )
 
         if result.get("is_whisper_agent"):
             fqdn = result.get("fqdn") or (result.get("evidence") or {}).get("ptr")

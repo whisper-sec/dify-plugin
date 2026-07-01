@@ -11,7 +11,7 @@ class RdapLookupTool(Tool):
         self, tool_parameters: dict[str, Any]
     ) -> Generator[ToolInvokeMessage, None, None]:
         address = normalize_address(tool_parameters)
-        result = whisper_get(f"/ip/{address}")
+        result = whisper_get(f"/ip/{address}", credentials=self.runtime.credentials)
 
         if result.get("errorCode"):
             title = result.get("title") or "Not Found"

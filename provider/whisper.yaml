@@ -4,16 +4,40 @@ identity:
   label:
     en_US: Whisper
   description:
-    en_US: Keyless, anonymous verification and resolution of Whisper AI-agent identities on the wire - verdict, RDAP record, tamper-evident issuance log, and inbound lookup feed for any IPv6 address.
+    en_US: Give AI agents a real, routable IPv6 identity. Keyless verification and RDAP for anyone; with your Whisper API key, provision and govern agents on the Whisper network - register agents with their own /128, set DNS policy, read logs, revoke, and get egress config.
   icon: icon.svg
   tags:
     - utilities
-credentials_for_provider: {}
+credentials_for_provider:
+  api_key:
+    type: secret-input
+    required: false
+    label:
+      en_US: Whisper API Key
+    help:
+      en_US: "Optional. Leave blank to use the keyless tools (Verify Identity, RDAP, Transparency, Inbound Lookups). Add your whisper_live_… key to unlock the control plane: register agents, set policy, read logs, revoke, and get egress config."
+    placeholder:
+      en_US: whisper_live_…
+    url: https://whisper.online/platform
+  egress_proxy:
+    type: text-input
+    required: false
+    label:
+      en_US: Egress Proxy (optional)
+    help:
+      en_US: "Optional. Route this plugin's outbound calls through an agent's routable Whisper /128. Run `whisper connect` on the Dify host and paste the local endpoint it prints (e.g. socks5h://host.docker.internal:1080). Leave blank to use the container's HTTP_PROXY / ALL_PROXY, or for no egress. See EGRESS.md."
+    placeholder:
+      en_US: socks5h://host.docker.internal:1080
 tools:
   - tools/verify_identity.yaml
   - tools/rdap_lookup.yaml
   - tools/transparency_log.yaml
   - tools/inbound_lookups.yaml
+  - tools/register_agent.yaml
+  - tools/set_policy.yaml
+  - tools/get_logs.yaml
+  - tools/revoke_agent.yaml
+  - tools/get_egress.yaml
 extra:
   python:
     source: provider/whisper.py

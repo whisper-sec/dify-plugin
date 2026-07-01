@@ -1,0 +1,32 @@
+identity:
+  name: revoke_agent
+  author: whisper-sec
+  label:
+    en_US: Revoke Agent
+description:
+  human:
+    en_US: Fully revoke an agent - withdraw its /128, PTR, tokens and API key. Irreversible. Requires your Whisper API key and an explicit confirm.
+  llm: Fully and IRREVERSIBLY revoke a Whisper agent (op:revoke) - withdraw its /128 identity, PTR, tokens and its API key. Requires the account's Whisper API key. You MUST set confirm=true to proceed; without it the tool refuses (safety). Returns the revocation status.
+parameters:
+  - name: agent
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: Agent
+    human_description:
+      en_US: The agent to revoke - its id or its /128 address.
+    llm_description: The agent to revoke, selected by its id or its /128 address. Required.
+  - name: confirm
+    type: boolean
+    required: true
+    form: llm
+    default: false
+    label:
+      en_US: Confirm (irreversible)
+    human_description:
+      en_US: Must be true to proceed. Revocation is irreversible.
+    llm_description: Safety switch - must be true to actually revoke. Leave false to refuse.
+extra:
+  python:
+    source: tools/revoke_agent.py
