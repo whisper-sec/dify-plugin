@@ -7,31 +7,50 @@ Tier 1 (keyless, anonymous) - the public identity API at
   GET /ip/<addr>/transparency      -> tamper-evident issuance log
   GET /ip/<addr>/lookups           -> inbound lookup feed
 
-Tier 2 (with the user's API key) - the control plane at
-``https://graph.whisper.security/api/query``. One Cypher verb,
-``CALL whisper.agents({op:'…', args:{…}})``, authenticated with the
-caller's ``whisper_live_`` key (``X-API-Key``):
+The whisper.security graph (same two tiers) - ``POST
+https://graph.whisper.security/api/query`` with
+``{"query": "<cypher>", "parameters": {...}}``, envelope
+``{columns, rows, statistics}`` (rows are objects keyed by column):
+  keyless  -> the direct read procedures (whisper.assess / identify /
+              explain / variants / walk / origins / history / psl.* /
+              asSet / lookupTorRelay / db.schema), rate-limited
+  with key -> unlimited, plus raw Cypher and the multi-step catalog
+              flows (run via the gallery runner, SSE)
+
+Tier 2 (with the user's API key) - the control plane at the same
+endpoint. One Cypher verb, ``CALL whisper.agents({op:'…', args:{…}})``,
+authenticated with the caller's ``whisper_live_`` key (``X-API-Key``):
   register / identity / list / policy / logs / revoke.
 
 Robustness Principle (RFC 761): conservative in what we EMIT - every value
 embedded in a Cypher literal is escaped so it can never break out of the map,
-and requests are strict, deterministic, keyed only by what the caller passed;
-liberal in what we ACCEPT - both control-plane wire shapes are decoded, an
-address is taken in any notation, and every failure surfaces as a clear,
-helpful message rather than an opaque 500.
+graph queries carry user values only as ``$``-parameters (never spliced into
+the query text), and requests are strict, deterministic, keyed only by what
+the caller passed; liberal in what we ACCEPT - both control-plane wire shapes
+are decoded, an address is taken in any notation, and every failure surfaces
+as a clear, helpful message rather than an opaque 500.
 """
 
+import json
+import os
 from typing import Any, Optional
 
 import requests
 
 # Tier-1 keyless identity API (anonymous).
 BASE_URL = "https://rdap.whisper.online"
-# Tier-2 control plane (needs the user's whisper_live_ API key).
+# The whisper.security graph + control plane (one endpoint, two tiers).
 CONTROL_URL = "https://graph.whisper.security/api/query"
+GRAPH_URL = CONTROL_URL
+# The gallery flow runner - executes a multi-step catalog flow (keyed, SSE).
+FLOW_RUN_URL = "https://console.whisper.security/api/gallery/run"
+# Docs live under docsBase + each catalog entry's docPath.
+DOCS_BASE = "https://www.whisper.security"
 
 TIMEOUT = 15
 CONTROL_TIMEOUT = 30
+# Flow runs are multi-step graph programs; the read timeout is per SSE chunk.
+FLOW_TIMEOUT = (10, 120)
 USER_AGENT = "whisper-dify-plugin/1"
 
 
@@ -388,6 +407,292 @@ def sanitize_connect(
         "See EGRESS.md."
     )
     return out
+
+
+# --- the whisper.security graph: raw Cypher, direct reads, catalog flows ----------
+
+
+def graph_call(
+    credentials: Optional[dict[str, Any]],
+    cypher: str,
+    parameters: Optional[dict[str, Any]] = None,
+    require_key: bool = False,
+) -> dict[str, Any]:
+    """POST a Cypher query to the graph; return the {columns,rows,statistics} envelope.
+
+    Two-tier (Postel - auth is optional): the caller's key is sent iff configured.
+    The direct read procedures answer keyless (rate-limited, ~100/window); raw
+    Cypher keyless gets a depth-limited anonymous taste; a key lifts both. User
+    values travel ONLY as $-parameters in the ``parameters`` map - they are never
+    spliced into the query text, so a hostile value can never become Cypher.
+
+    Failures arrive as RFC-7807 problem objects and are raised as a clear
+    WhisperControlError, never an opaque 500.
+    """
+    key = require_api_key(credentials) if require_key else api_key(credentials)
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": USER_AGENT,
+    }
+    if key:
+        headers["X-API-Key"] = key
+    try:
+        response = requests.post(
+            GRAPH_URL,
+            json={"query": cypher, "parameters": parameters or {}},
+            headers=headers,
+            timeout=CONTROL_TIMEOUT,
+            proxies=_proxies(credentials),
+        )
+    except requests.RequestException as exc:
+        raise WhisperControlError(
+            f"graph endpoint unreachable at {GRAPH_URL}: {exc}"
+        ) from exc
+
+    try:
+        body = response.json()
+    except ValueError:
+        raise WhisperControlError(
+            "graph endpoint returned a non-JSON reply", status=response.status_code
+        )
+
+    if isinstance(body, dict) and "rows" in body and "columns" in body:
+        return body
+
+    # An RFC-7807 problem object ({type,title,status,detail,suggestions}).
+    if isinstance(body, dict):
+        detail = (
+            body.get("detail")
+            or body.get("title")
+            or body.get("message")
+            or "graph query failed"
+        )
+        status = body.get("status") or response.status_code
+        if status == 429 and not key:
+            detail += (
+                " (keyless graph calls are rate-limited; add your Whisper API "
+                "key in the plugin settings to lift the limit)"
+            )
+        raise WhisperControlError(
+            detail, status=status, suggestions=body.get("suggestions")
+        )
+    raise WhisperControlError(
+        "graph endpoint returned an unexpected reply", status=response.status_code
+    )
+
+
+# --- the query catalog (vendored from whisper-sec/whisper-catalog) -----------------
+
+_CATALOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "catalog.json")
+_catalog_by_id: Optional[dict[str, dict[str, Any]]] = None
+
+
+def catalog_entries() -> dict[str, dict[str, Any]]:
+    """The catalog entries keyed by id (loaded once from tools/catalog.json)."""
+    global _catalog_by_id
+    if _catalog_by_id is None:
+        with open(_CATALOG_PATH, encoding="utf-8") as fh:
+            data = json.load(fh)
+        _catalog_by_id = {e["id"]: e for e in data.get("entries", [])}
+    return _catalog_by_id
+
+
+def catalog_entry(recipe_id: str) -> dict[str, Any]:
+    """One catalog entry by id, or a clear error naming every valid id."""
+    entries = catalog_entries()
+    entry = entries.get((recipe_id or "").strip())
+    if entry is None:
+        raise WhisperControlError(
+            f"Unknown recipe '{recipe_id}'. Valid recipes: "
+            + ", ".join(sorted(entries)),
+            status=404,
+        )
+    return entry
+
+
+def doc_url(entry: dict[str, Any]) -> str:
+    """The docs deep-link for a catalog entry (docsBase + docPath)."""
+    return DOCS_BASE + (entry.get("docPath") or "/docs")
+
+
+def recipe_parameters(
+    entry: dict[str, Any],
+    value: str = "",
+    extra: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Build the $-parameter map for a direct catalog entry.
+
+    Liberal in what we accept: start from the entry's recorded defaults, map the
+    caller's single ``value`` onto the entry's primary input (the input whose id
+    is ``value``, else the first input), then let explicit ``extra`` parameters
+    win. Everything stays a $-parameter - nothing is spliced into the Cypher.
+    """
+    params: dict[str, Any] = dict((entry.get("exec") or {}).get("params") or {})
+    inputs = entry.get("inputs") or []
+    if value:
+        primary = next((i for i in inputs if i.get("id") == "value"), None)
+        primary = primary or (inputs[0] if inputs else None)
+        if primary and primary.get("paramName"):
+            params[primary["paramName"]] = value
+    for inp in inputs:
+        name = inp.get("paramName")
+        if name and name not in params and inp.get("default") is not None:
+            params[name] = inp["default"]
+    if extra:
+        params.update(extra)
+    return params
+
+
+def direct_read(
+    credentials: Optional[dict[str, Any]],
+    recipe_id: str,
+    value: str,
+    extra: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Run a direct (single-Cypher) catalog entry; return {columns,rows,statistics}.
+
+    The keyless read procedures work with no key at all; the entry's recorded
+    access tier decides whether a key is required (only ``submit`` among the
+    direct entries). A configured key is always sent - it lifts the rate limit.
+    """
+    entry = catalog_entry(recipe_id)
+    exec_ = entry.get("exec") or {}
+    if exec_.get("mode") != "direct":
+        raise WhisperControlError(
+            f"Recipe '{recipe_id}' is a multi-step flow - run it via run_recipe "
+            "(it needs your API key).",
+            status=400,
+        )
+    return graph_call(
+        credentials,
+        exec_["cypher"],
+        recipe_parameters(entry, value, extra),
+        require_key=entry.get("access") == "keyed",
+    )
+
+
+# --- catalog flows via the gallery runner (SSE) ------------------------------------
+
+
+def _iter_sse(response: requests.Response):
+    """Yield (event, data) pairs from an SSE stream, liberally.
+
+    Handles multi-line ``data:`` fields per the SSE spec; unknown fields and
+    comments are ignored; a data payload that is not JSON is skipped rather than
+    failing the whole run.
+    """
+    event = ""
+    data_lines: list[str] = []
+    for raw in response.iter_lines(decode_unicode=True):
+        if raw is None:
+            continue
+        line = raw.rstrip("\r")
+        if line == "":
+            if data_lines:
+                try:
+                    payload = json.loads("\n".join(data_lines))
+                except ValueError:
+                    payload = None
+                if payload is not None:
+                    yield (event or "message", payload)
+            event = ""
+            data_lines = []
+            continue
+        if line.startswith("event:"):
+            event = line[len("event:"):].strip()
+        elif line.startswith("data:"):
+            data_lines.append(line[len("data:"):].lstrip())
+
+
+def flow_run(
+    credentials: Optional[dict[str, Any]],
+    slug: str,
+    value: str = "",
+    param_values: Optional[dict[str, Any]] = None,
+    max_rows: int = 50,
+) -> dict[str, Any]:
+    """Run a multi-step catalog flow via the gallery runner and collect its steps.
+
+    Keyed only - the runner authenticates every step's graph reads with the
+    caller's key (a keyless caller gets the clear two-tier message, not a 401).
+    Body: {slug, value, paramValues}; the reply is an SSE stream (start /
+    step-start / step / graph / complete / error) - each finished step's table
+    is collected with its rows capped at ``max_rows``.
+    """
+    key = require_api_key(credentials)
+    body: dict[str, Any] = {"slug": slug}
+    if value:
+        body["value"] = value
+    if param_values:
+        body["paramValues"] = param_values
+    try:
+        response = requests.post(
+            FLOW_RUN_URL,
+            json=body,
+            headers={
+                "X-API-Key": key,
+                "Content-Type": "application/json",
+                "Accept": "text/event-stream",
+                "User-Agent": USER_AGENT,
+                "X-Whisper-Client": USER_AGENT,
+            },
+            timeout=FLOW_TIMEOUT,
+            stream=True,
+            proxies=_proxies(credentials),
+        )
+    except requests.RequestException as exc:
+        raise WhisperControlError(
+            f"flow runner unreachable at {FLOW_RUN_URL}: {exc}"
+        ) from exc
+
+    if response.status_code != 200:
+        try:
+            problem = response.json()
+        except ValueError:
+            problem = {}
+        raise WhisperControlError(
+            problem.get("message")
+            or problem.get("detail")
+            or f"flow runner replied HTTP {response.status_code}",
+            status=response.status_code,
+        )
+
+    steps: list[dict[str, Any]] = []
+    summary: dict[str, Any] = {}
+    try:
+        for event, data in _iter_sse(response):
+            if event == "step" and isinstance(data, dict):
+                rows = data.get("rows") or []
+                step: dict[str, Any] = {
+                    "id": data.get("id"),
+                    "title": data.get("title"),
+                    "columns": data.get("columns") or [],
+                    "rowCount": data.get("rowCount", len(rows)),
+                    "rows": rows[:max_rows],
+                }
+                if len(rows) > max_rows:
+                    step["truncated"] = True
+                # The trailing presentation step carries the shaped report.
+                if data.get("output") is not None:
+                    step["output"] = data["output"]
+                steps.append(step)
+            elif event == "error" and isinstance(data, dict):
+                raise WhisperControlError(
+                    data.get("message") or "flow run failed",
+                    status=500,
+                )
+            elif event == "complete" and isinstance(data, dict):
+                summary = data
+    finally:
+        response.close()
+
+    return {
+        "slug": slug,
+        "steps": steps,
+        "stepCount": len(steps),
+        "totalLatencyMs": summary.get("totalLatencyMs"),
+    }
 
 
 def csv_list(raw: Optional[str]) -> list[str]:

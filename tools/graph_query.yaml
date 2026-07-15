@@ -1,0 +1,43 @@
+identity:
+  name: graph_query
+  author: whisper-sec
+  label:
+    en_US: Query Graph (Cypher)
+description:
+  human:
+    en_US: Run a Cypher query against the whisper.security graph (billions of internet-infrastructure nodes). Full power with your Whisper API key; a small anonymous taste without.
+  llm: "Run a raw Cypher query against the whisper.security graph - billions of nodes (HOSTNAME, IPV4, IPV6, EMAIL, ORGANIZATION, ASN, FEED_SOURCE, ...) and relationships (RESOLVES_TO, NAMESERVER_FOR, LINKS_TO, LISTED_IN, ...). Pass user values via `parameters` as $-parameters (e.g. cypher `MATCH (h:HOSTNAME {name:$name})-[:RESOLVES_TO]->(ip) RETURN ip.name AS address` with parameters `{\"name\":\"example.com\"}`) - never concatenate values into the query. Returns {columns, rows, statistics}; rows are objects keyed by column. Full, unlimited queries need the account's Whisper API key; without one the anonymous tier serves a small, depth-limited, rate-limited taste. Discover the schema with the graph-schema recipe (Run Graph Recipe -> db-schema). Docs: https://www.whisper.security/docs/cypher-api"
+parameters:
+  - name: cypher
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: Cypher Query
+    human_description:
+      en_US: "The Cypher query to run. Use $-parameters for values, e.g. MATCH (h:HOSTNAME {name:$name}) RETURN h.name."
+    llm_description: "The Cypher query. Reference user values as $-parameters ($name, $v, ...) and pass them via `parameters` - do not splice values into the query text."
+  - name: parameters
+    type: string
+    required: false
+    form: llm
+    label:
+      en_US: Parameters (JSON)
+    human_description:
+      en_US: 'Optional JSON object binding the query''s $-parameters, e.g. {"name":"example.com"}.'
+    llm_description: 'Optional JSON object mapping $-parameter names to values, e.g. {"name":"example.com"}. Strings, numbers, booleans and lists are all accepted.'
+  - name: max_rows
+    type: number
+    required: false
+    form: llm
+    min: 1
+    max: 1000
+    default: 100
+    label:
+      en_US: Max Rows
+    human_description:
+      en_US: Cap on returned rows (default 100).
+    llm_description: Maximum number of rows to return in the tool output (default 100).
+extra:
+  python:
+    source: tools/graph_query.py

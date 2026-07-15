@@ -1,0 +1,22 @@
+identity:
+  name: graph_assess
+  author: whisper-sec
+  label:
+    en_US: Assess Threat Posture
+description:
+  human:
+    en_US: Get a labelled threat posture (malicious / benign / unknown) for a host or IP from the whisper.security graph. Keyless - no API key needed.
+  llm: "Assess the threat posture of a host or IP against the whisper.security graph (whisper.assess). Returns a posture label + severity band + sub-labels + coverage + evidence - benign-allowlisted vs malicious-evidenced, never a bare score. Read label + band + coverage together; no-data does not mean safe. Keyless and anonymous (rate-limited; a configured Whisper API key lifts the limit). Docs: https://www.whisper.security/docs/whisper-graph/procedures"
+parameters:
+  - name: value
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: Host or IP
+    human_description:
+      en_US: The host or IP to assess, e.g. 8.8.8.8 or example.com.
+    llm_description: The indicator to assess - a hostname or an IPv4/IPv6 address.
+extra:
+  python:
+    source: tools/graph_assess.py

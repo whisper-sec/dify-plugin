@@ -1,0 +1,140 @@
+identity:
+  name: run_recipe
+  author: whisper-sec
+  label:
+    en_US: Run Graph Recipe
+description:
+  human:
+    en_US: Run one of the 29 curated whisper.security graph recipes - threat posture, typosquat scan, attack surface, BGP hygiene, WHOIS history and more. Keyless recipes work with no key; multi-step flows need your Whisper API key.
+  llm: "Run a named recipe from the whisper.security query catalog (29 recipes). Direct read recipes (assess, identify, explain, variants, walk, origins, history, history-whois, psl-tldplusone, psl-affiliation, asset, lookup-tor-relay, db-schema) run one Cypher procedure and work KEYLESS (rate-limited; a configured key lifts the limit). Multi-step flows (typosquat, attack-surface, indicator, indicator-enrichment, blast-radius, bgp-hijack-exposure, route-health, subdomain-takeover, nameserver-hijack-dns-consistency, infrastructure-mapping, map-supply-chain-concentration, discover-ai-agent-infrastructure, build-takedown-evidence-package, attack-path, anycast-dns-root-sovereignty) and submit need the account's Whisper API key. Pass the recipe's main input (a domain, IP, ASN, country code, ...) as `value`; extra recipe parameters as a JSON object in `params`. Returns the result table (direct) or every step's table (flow), plus a docs link per recipe. Catalog docs: https://www.whisper.security/docs"
+parameters:
+  - name: recipe
+    type: select
+    required: true
+    form: llm
+    label:
+      en_US: Recipe
+    options:
+      - value: anycast-dns-root-sovereignty
+        label:
+          en_US: "Anycast DNS-Root Sovereignty (flow, key)"
+      - value: attack-path
+        label:
+          en_US: "Attack Path & Connection Finder (flow, key)"
+      - value: attack-surface
+        label:
+          en_US: "Attack-Surface Mapper (flow, key)"
+      - value: bgp-hijack-exposure
+        label:
+          en_US: "BGP Hijack & Routing-Hygiene Audit (flow, key)"
+      - value: blast-radius
+        label:
+          en_US: "Dependency Blast Radius (flow, key)"
+      - value: build-takedown-evidence-package
+        label:
+          en_US: "Takedown Evidence Package (flow, key)"
+      - value: discover-ai-agent-infrastructure
+        label:
+          en_US: "AI / Agent Infrastructure Discovery (flow, key)"
+      - value: indicator
+        label:
+          en_US: "Threat Investigation (flow, key)"
+      - value: indicator-enrichment
+        label:
+          en_US: "Indicator Enrichment (flow, key)"
+      - value: infrastructure-mapping
+        label:
+          en_US: "Digital Infrastructure Mapping (flow, key)"
+      - value: map-supply-chain-concentration
+        label:
+          en_US: "Infrastructure Concentration & Resilience (flow, key)"
+      - value: nameserver-hijack-dns-consistency
+        label:
+          en_US: "Nameserver & DNS Delegation Audit (flow, key)"
+      - value: route-health
+        label:
+          en_US: "Network & Routing Report (flow, key)"
+      - value: subdomain-takeover
+        label:
+          en_US: "Subdomain Takeover Detection (flow, key)"
+      - value: typosquat
+        label:
+          en_US: "Typosquat & Brand-Impersonation Scanner (flow, key)"
+      - value: identify
+        label:
+          en_US: "Vendor / Operator Identity (whisper.identify) (keyless)"
+      - value: assess
+        label:
+          en_US: "Threat Posture (whisper.assess) (keyless)"
+      - value: variants
+        label:
+          en_US: "Typosquat Variant Generator (whisper.variants) (keyless)"
+      - value: walk
+        label:
+          en_US: "Vendor Attribution Walk (whisper.walk) (keyless)"
+      - value: explain
+        label:
+          en_US: "Threat-Feed Explainer (whisper.explain) (keyless)"
+      - value: psl-tldplusone
+        label:
+          en_US: "Registrable Apex (whisper.psl.tldPlusOne) (keyless)"
+      - value: psl-affiliation
+        label:
+          en_US: "PSL Private-Suffix Affiliation (whisper.psl.affiliation) (keyless)"
+      - value: origins
+        label:
+          en_US: "CDN-Origin De-cloaker (whisper.origins) (keyless)"
+      - value: history
+        label:
+          en_US: "WHOIS History Timeline (whisper.history) (keyless)"
+      - value: history-whois
+        label:
+          en_US: "WHOIS History (projection) (whisper.history.whois) (keyless)"
+      - value: asset
+        label:
+          en_US: "AS-SET Membership (whisper.asSet) (keyless)"
+      - value: lookup-tor-relay
+        label:
+          en_US: "Tor Exit-Relay Lookup (whisper.lookupTorRelay) (keyless)"
+      - value: db-schema
+        label:
+          en_US: "Graph Schema Catalog (db.schema) (keyless)"
+      - value: submit
+        label:
+          en_US: "Submit Observation / Feedback (whisper.submit) (key)"
+    human_description:
+      en_US: Which catalog recipe to run. Keyless recipes need no credentials; (flow, key) recipes need your Whisper API key.
+    llm_description: The catalog recipe id to run.
+  - name: value
+    type: string
+    required: false
+    form: llm
+    label:
+      en_US: Input Value
+    human_description:
+      en_US: The recipe's main input - a domain, IP, ASN, country code or other indicator. Leave blank to run the recipe's documented example.
+    llm_description: The recipe's primary input (domain, IP, ASN, AS-SET name, country code, ...). Optional - omitted, the recipe runs on its documented example input.
+  - name: params
+    type: string
+    required: false
+    form: llm
+    label:
+      en_US: Extra Params (JSON)
+    human_description:
+      en_US: 'Optional JSON object of extra recipe parameters, e.g. {"instanceType":"Global"}.'
+    llm_description: 'Optional JSON object of additional recipe parameters keyed by name (see the recipe docs), e.g. {"instanceType":"Global"} for anycast-dns-root-sovereignty or the observation fields for submit.'
+  - name: max_rows
+    type: number
+    required: false
+    form: llm
+    min: 1
+    max: 500
+    default: 50
+    label:
+      en_US: Max Rows
+    human_description:
+      en_US: Cap on returned rows (per step, for flows). Default 50.
+    llm_description: Maximum rows to return - per step for flows, total for direct recipes. Default 50.
+extra:
+  python:
+    source: tools/run_recipe.py

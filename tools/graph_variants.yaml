@@ -1,0 +1,34 @@
+identity:
+  name: graph_variants
+  author: whisper-sec
+  label:
+    en_US: Generate Look-alike Variants
+description:
+  human:
+    en_US: Generate typosquat / look-alike variants of a domain (bitsquatting, homoglyph, TLD-swap, ...) and flag which are registered, from the whisper.security graph. Keyless - no API key needed.
+  llm: "Generate look-alike / typosquat variants of a domain against the whisper.security graph (whisper.variants). Returns each variant with its generation method (BITSQUATTING, HOMOGLYPH, KEYBOARD_REPLACEMENT, TLD_SWAP, ...), whether it EXISTS (is registered), and a confidence. Use it to seed brand-protection monitoring; follow up with Assess Threat Posture on the registered ones. Keyless and anonymous (rate-limited; a configured Whisper API key lifts the limit). Docs: https://www.whisper.security/docs/whisper-graph/procedures/variants"
+parameters:
+  - name: value
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: Domain
+    human_description:
+      en_US: The domain to generate look-alikes for, e.g. paypal.com.
+    llm_description: The registrable domain to generate look-alike variants for, e.g. paypal.com.
+  - name: max_rows
+    type: number
+    required: false
+    form: llm
+    min: 1
+    max: 500
+    default: 200
+    label:
+      en_US: Max Rows
+    human_description:
+      en_US: Cap on returned variants (default 200).
+    llm_description: Maximum number of variants to return (default 200).
+extra:
+  python:
+    source: tools/graph_variants.py

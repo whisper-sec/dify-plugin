@@ -1,0 +1,22 @@
+identity:
+  name: graph_identify
+  author: whisper-sec
+  label:
+    en_US: Identify Vendor / Operator
+description:
+  human:
+    en_US: Identify the vendor or operator behind a host or IP (canonical name, category, roles) from the whisper.security graph. Keyless - no API key needed.
+  llm: "Identify the vendor/operator behind a host or IP against the whisper.security graph (whisper.identify). Returns the canonical name, category, roles, host class and threat band - who actually runs this endpoint. Useful for attributing an agent, API host or IP to a real organization. Keyless and anonymous (rate-limited; a configured Whisper API key lifts the limit). Docs: https://www.whisper.security/docs/whisper-graph/procedures/identify"
+parameters:
+  - name: value
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: Host or IP
+    human_description:
+      en_US: The host or IP to identify, e.g. api.openai.com or 8.8.8.8.
+    llm_description: The indicator to identify - a hostname or an IPv4/IPv6 address.
+extra:
+  python:
+    source: tools/graph_identify.py

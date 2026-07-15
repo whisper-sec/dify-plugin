@@ -6,13 +6,17 @@ address is its identity*. This plugin brings that to Dify in two tiers.
 
 - **Keyless (no account):** ask "is this IPv6 address a genuine agent, and who
   operates it?", then pull its RDAP record, its tamper-evident issuance log, and
-  its inbound-lookup feed. Zero configuration.
-- **With your Whisper API key:** the full control plane - **register** an agent
-  with its own `/128` and key, **set DNS policy**, read **logs**, **revoke**, and
-  get **egress config** so a self-hosted agent's traffic sources from its `/128`.
+  its inbound-lookup feed. Plus **query the whisper.security graph** - assess a
+  threat posture, identify a vendor, explain a score, generate look-alikes, and
+  run the keyless catalog recipes. Zero configuration.
+- **With your Whisper API key:** raw **Cypher** over the whole graph, the
+  multi-step **investigation recipes**, and the full control plane - **register**
+  an agent with its own `/128` and key, **set DNS policy**, read **logs**,
+  **revoke**, and get **egress config** so a self-hosted agent's traffic sources
+  from its `/128`.
 
 Auth is optional: install it and the keyless tools work immediately; add a key to
-unlock provisioning and governance.
+lift the rate limit and unlock raw Cypher, the recipes, and provisioning.
 
 ## Tools
 
@@ -24,21 +28,88 @@ unlock provisioning and governance.
 | **Lookup RDAP Record** | The IP-anchored RDAP registry record | `GET /ip/<addr>` |
 | **Get Transparency Log** | The hash-chained, signed identity issuance history | `GET /ip/<addr>/transparency` |
 | **Get Inbound Lookups** | Who has recently checked this identity | `GET /ip/<addr>/lookups` |
+| **Assess Threat Posture** | A labelled threat posture (malicious / benign / unknown) for a host or IP | `whisper.assess` |
+| **Identify Vendor / Operator** | Who runs a host or IP (canonical name, category, roles) | `whisper.identify` |
+| **Explain Threat Score** | Why an indicator is flagged - score, level, cited feeds | `whisper.explain` |
+| **Generate Look-alike Variants** | Typosquat / look-alike variants of a domain, and which are registered | `whisper.variants` |
+| **Run Graph Recipe** *(keyless recipes)* | Any of the 13 keyless read recipes from the catalog | catalog `direct` |
 
-### Control plane - needs your Whisper API key
+### Graph + control plane - needs your Whisper API key
 
-| Tool | Does | Op |
-|------|------|----|
-| **Register Agent** | Mint a new agent with its own routable `/128` **and** its own API key (returned once) | `register` |
-| **Set Policy** | Set/read the per-tenant DNS resolver policy (default action + allow/deny lists) | `policy` |
-| **Get Logs** | Query recent DNS / connection / allocation activity | `logs` |
-| **Revoke Agent** | Fully revoke an agent - withdraw its `/128`, PTR, tokens and key (irreversible) | `revoke` |
-| **Get Egress Config** | Get an agent's egress binding to its `/128` (secret-free; see Egress) | `connect` |
+| Tool | Does |
+|------|------|
+| **Query Graph (Cypher)** | Run any Cypher over the whole whisper.security graph; values bound as `$`-parameters |
+| **Run Graph Recipe** *(flows)* | Any of the 16 multi-step investigation recipes (typosquat, attack-surface, BGP hygiene, ...) |
+| **Register Agent** | Mint a new agent with its own routable `/128` **and** its own API key (returned once) |
+| **Set Policy** | Set/read the per-tenant DNS resolver policy (default action + allow/deny lists) |
+| **Get Logs** | Query recent DNS / connection / allocation activity |
+| **Revoke Agent** | Fully revoke an agent - withdraw its `/128`, PTR, tokens and key (irreversible) |
+| **Get Egress Config** | Get an agent's egress binding to its `/128` (secret-free; see Egress) |
 
-The control tools speak the one Whisper control verb -
-`CALL whisper.agents({op:…})`, POSTed to `https://graph.whisper.security/api/query`
-with your key in the `X-API-Key` header. The exact wire contract is documented at
+The graph tools POST `{"query":"<cypher>","parameters":{…}}` to
+`https://graph.whisper.security/api/query` (the keyless read procedures work with
+no key, rate-limited; a key lifts the limit and unlocks raw Cypher + flows). The
+control tools speak the one Whisper control verb -
+`CALL whisper.agents({op:…})`, POSTed to the same endpoint with your key in the
+`X-API-Key` header. The exact wire contract is documented at
 <https://github.com/whisper-sec/whisper-cli> (the CLI is the reference client).
+
+## Query the whisper.security graph
+
+Whisper runs a graph of billions of internet-infrastructure nodes (hostnames,
+IPs, organizations, ASNs, threat feeds) and their relationships. Four one-shot
+read tools, 29 named recipes, and raw Cypher expose it - **two-tier, so you get
+real value with no key at all** and the full power with one.
+
+### Keyless - real answers, no account
+
+```
+Assess Threat Posture   value = 8.8.8.8
+```
+
+```json
+{ "columns": ["host","label","band","coverage",...],
+  "rows": [ { "host":"8.8.8.8", "label":"benign-allowlisted", "band":"INFO", "coverage":"known-clean" } ] }
+```
+
+```
+Identify Vendor / Operator   value = api.openai.com     -> "Cloudflare (cdn)"
+Explain Threat Score         value = paypal.com         -> score + cited feeds
+Generate Look-alike Variants value = paypal.com         -> variants + which are registered
+```
+
+The keyless read procedures are rate-limited (about 100 calls per window);
+adding your API key lifts the limit. Docs:
+<https://www.whisper.security/docs/whisper-graph/procedures>.
+
+### With a key - raw Cypher
+
+```
+Query Graph (Cypher)
+  cypher     = MATCH (h:HOSTNAME {name:$name})-[:RESOLVES_TO]->(ip) RETURN ip.name AS address LIMIT 5
+  parameters = {"name":"google.com"}
+```
+
+Always pass user values through `parameters` as `$`-parameters (never
+concatenate them into the query) - the tool keeps them as data, so a hostile
+value can never become Cypher. Discover the schema with **Run Graph Recipe ->
+Graph Schema Catalog (db.schema)**. Docs:
+<https://www.whisper.security/docs/cypher-api>.
+
+### Named recipes
+
+**Run Graph Recipe** exposes all 29 curated catalog recipes as a dropdown. The
+13 keyless direct reads run with no key; the 16 multi-step flows (typosquat,
+attack-surface, BGP hygiene, subdomain-takeover, ...) run via the gallery runner
+and need your key.
+
+```
+Run Graph Recipe   recipe = typosquat   value = example.com
+```
+
+Returns every step's table (registered look-alikes, brand owner, per-variant
+threat verdict, hosting, WHOIS, ...). The full catalog:
+<https://www.whisper.security/docs>.
 
 ## Configuration
 

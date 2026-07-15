@@ -1,0 +1,22 @@
+identity:
+  name: graph_explain
+  author: whisper-sec
+  label:
+    en_US: Explain Threat Score
+description:
+  human:
+    en_US: Explain why an indicator is (or is not) flagged - its threat score, level and the feeds that cite it - from the whisper.security graph. Keyless - no API key needed.
+  llm: "Explain an indicator's threat score against the whisper.security graph (whisper.explain). Returns the score, level, a human explanation, and the cited threat-feed sources (with first/last-seen), so a verdict is always backed by evidence. Use it to justify a block or an allow. Keyless and anonymous (rate-limited; a configured Whisper API key lifts the limit). Docs: https://www.whisper.security/docs/whisper-graph/procedures/explain"
+parameters:
+  - name: value
+    type: string
+    required: true
+    form: llm
+    label:
+      en_US: Indicator
+    human_description:
+      en_US: The indicator to explain, e.g. paypal.com, an IP, or a URL host.
+    llm_description: The indicator to explain - a hostname, domain or IP address.
+extra:
+  python:
+    source: tools/graph_explain.py

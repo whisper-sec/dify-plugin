@@ -4,7 +4,7 @@ identity:
   label:
     en_US: Whisper
   description:
-    en_US: Give AI agents a real, routable IPv6 identity. Keyless verification and RDAP for anyone; with your Whisper API key, provision and govern agents on the Whisper network - register agents with their own /128, set DNS policy, read logs, revoke, and get egress config.
+    en_US: Give AI agents a real, routable IPv6 identity and query the whisper.security graph of internet infrastructure. Keyless verification, RDAP, and the graph read procedures + 29 recipes for anyone; with your Whisper API key, run raw Cypher and the investigation flows, and provision and govern agents on the Whisper network - register agents with their own /128, set DNS policy, read logs, revoke, and get egress config.
   icon: icon.svg
   tags:
     - utilities
@@ -15,7 +15,7 @@ credentials_for_provider:
     label:
       en_US: Whisper API Key
     help:
-      en_US: "Optional. Leave blank to use the keyless tools (Verify Identity, RDAP, Transparency, Inbound Lookups). Add your whisper_live_… key to unlock the control plane: register agents, set policy, read logs, revoke, and get egress config."
+      en_US: "Optional. Leave blank to use the keyless tools (Verify Identity, RDAP, Transparency, Inbound Lookups, and the graph reads: Assess, Identify, Explain, Variants + the keyless recipes - rate-limited). Add your whisper_live_… key to lift the rate limit and unlock raw Cypher, the multi-step recipes, and the control plane: register agents, set policy, read logs, revoke, and get egress config."
     placeholder:
       en_US: whisper_live_…
     url: https://whisper.online/platform
@@ -33,6 +33,12 @@ tools:
   - tools/rdap_lookup.yaml
   - tools/transparency_log.yaml
   - tools/inbound_lookups.yaml
+  - tools/graph_assess.yaml
+  - tools/graph_identify.yaml
+  - tools/graph_explain.yaml
+  - tools/graph_variants.yaml
+  - tools/run_recipe.yaml
+  - tools/graph_query.yaml
   - tools/register_agent.yaml
   - tools/set_policy.yaml
   - tools/get_logs.yaml
