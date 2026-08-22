@@ -8,7 +8,7 @@ tiers:
 - **Keyless tier** - anonymous lookups against the public identity API at
   `https://rdap.whisper.online`. No credentials.
 - **Control-plane tier** - when you configure a Whisper API key, the plugin can
-  provision and govern agents via `https://graph.whisper.security/api/query`.
+  provision and govern agents via `https://graph.whisper.online/api/query`.
 
 The plugin stores nothing itself.
 

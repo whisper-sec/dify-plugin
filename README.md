@@ -47,7 +47,7 @@ lift the rate limit and unlock raw Cypher, the recipes, and provisioning.
 | **Get Egress Config** | Get an agent's egress binding to its `/128` (secret-free; see Egress) |
 
 The graph tools POST `{"query":"<cypher>","parameters":{…}}` to
-`https://graph.whisper.security/api/query` (the keyless read procedures work with
+`https://graph.whisper.online/api/query` (the keyless read procedures work with
 no key, rate-limited; a key lifts the limit and unlocks raw Cypher + flows). The
 control tools speak the one Whisper control verb -
 `CALL whisper.agents({op:…})`, POSTed to the same endpoint with your key in the
@@ -186,6 +186,6 @@ The Whisper CLI is open source (MIT): <https://github.com/whisper-sec/whisper-cl
 - **Homepage:** <https://whisper.online/platform>
 - **Issues / contact:** <https://github.com/whisper-sec/dify-plugin/issues>
 - **Keyless API host:** `https://rdap.whisper.online` (public, no credentials)
-- **Control plane:** `https://graph.whisper.security/api/query` (needs your API key)
+- **Control plane:** `https://graph.whisper.online/api/query` (needs your API key)
 
 Published by Whisper Security (viaGraph B.V.). Licensed MIT.
