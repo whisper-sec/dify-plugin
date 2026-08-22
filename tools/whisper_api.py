@@ -8,7 +8,7 @@ Tier 1 (keyless, anonymous) - the public identity API at
   GET /ip/<addr>/lookups           -> inbound lookup feed
 
 The whisper.security graph (same two tiers) - ``POST
-https://graph.whisper.security/api/query`` with
+https://graph.whisper.online/api/query`` with
 ``{"query": "<cypher>", "parameters": {...}}``, envelope
 ``{columns, rows, statistics}`` (rows are objects keyed by column):
   keyless  -> the direct read procedures (whisper.assess / identify /
@@ -40,7 +40,7 @@ import requests
 # Tier-1 keyless identity API (anonymous).
 BASE_URL = "https://rdap.whisper.online"
 # The whisper.security graph + control plane (one endpoint, two tiers).
-CONTROL_URL = "https://graph.whisper.security/api/query"
+CONTROL_URL = "https://graph.whisper.online/api/query"
 GRAPH_URL = CONTROL_URL
 # The gallery flow runner - executes a multi-step catalog flow (keyed, SSE).
 FLOW_RUN_URL = "https://console.whisper.security/api/gallery/run"
