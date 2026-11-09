@@ -66,11 +66,59 @@ class WhisperControlError(Exception):
         detail: str,
         status: Optional[int] = None,
         suggestions: Optional[list] = None,
+        code: Optional[str] = None,
+        retryable: Optional[bool] = None,
     ) -> None:
         super().__init__(detail)
         self.detail = detail
         self.status = status
         self.suggestions = suggestions or []
+        self.code = code
+        self.retryable = retryable
+
+
+class NotFoundError(WhisperControlError):
+    """The control plane found nothing to act on (error code ``NOT_FOUND``).
+
+    For a revoke this means nothing was revoked: no agent of the caller's
+    matches the selector, or it was already revoked. Retrying cannot change
+    the answer, so ``retryable`` is always False.
+    """
+
+    def __init__(self, detail: str, status: Optional[int] = 404) -> None:
+        super().__init__(
+            detail, status=status, code="NOT_FOUND", retryable=False
+        )
+
+
+def _control_error(err: Any, status: Optional[int]) -> WhisperControlError:
+    """Build the error for a failed envelope, keeping the server's own words.
+
+    The server's text may sit in ``message`` (the control plane's error
+    object) or in ``detail``/``title``/``type`` (RFC 7807). A ``NOT_FOUND``
+    code becomes a NotFoundError. The decision is keyed on the code, never on
+    a bare 404, which can mean other things.
+    """
+    if isinstance(err, str) and err.strip():
+        err = {"message": err.strip()}
+    elif not isinstance(err, dict):
+        err = {}
+    detail = (
+        err.get("message") or err.get("detail") or err.get("title")
+        or err.get("type") or "control plane reported failure"
+    )
+    code = err.get("code")
+    status = err.get("status") or status
+    if code == "NOT_FOUND":
+        return NotFoundError(detail, status=status or 404)
+    retryable = err.get("retryable")
+    return WhisperControlError(
+        detail,
+        status=status,
+        suggestions=err.get("suggestions"),
+        code=code if isinstance(code, str) else None,
+        retryable=retryable if isinstance(retryable, bool) else None,
+    )
 
 
 # --- address / credential helpers -------------------------------------------------
@@ -259,12 +307,7 @@ def _decode_envelope(body: Any, status: int) -> list[dict[str, Any]]:
     if body.get("ok") is not None:
         if body.get("ok"):
             return _result_to_records(body.get("result"))
-        err = body.get("error") or {}
-        raise WhisperControlError(
-            err.get("detail") or err.get("title") or "control plane reported failure",
-            status=err.get("status") or status,
-            suggestions=err.get("suggestions"),
-        )
+        raise _control_error(body.get("error"), body.get("status") or status)
 
     # Shape 3: a bare problem object (no ok, no result/rows, problem-ish fields).
     has_problem = any(k in body for k in ("detail", "title", "type", "error"))
@@ -272,12 +315,7 @@ def _decode_envelope(body: Any, status: int) -> list[dict[str, Any]]:
         has_problem and "result" not in body and "rows" not in body
     ):
         err = body.get("error") or body
-        raise WhisperControlError(
-            err.get("detail") or err.get("title") or err.get("type")
-            or "control plane reported failure",
-            status=err.get("status") or status,
-            suggestions=err.get("suggestions"),
-        )
+        raise _control_error(err, body.get("status") or status)
 
     # Shape 2: the live Neo4j wrapper - rows[0] is a per-op envelope
     # {op,ok,status,result,error,retry_after} - or a plain {columns,rows} table.
@@ -288,12 +326,8 @@ def _decode_envelope(body: Any, status: int) -> list[dict[str, Any]]:
         head = rows[0]
         if isinstance(head, dict) and "ok" in head:
             if head.get("ok") is False:
-                err = head.get("error") or {}
-                raise WhisperControlError(
-                    err.get("detail") or err.get("title") or err.get("type")
-                    or "control plane reported failure",
-                    status=err.get("status") or head.get("status") or status,
-                    suggestions=err.get("suggestions"),
+                raise _control_error(
+                    head.get("error"), head.get("status") or status
                 )
             if head.get("result") is not None:
                 return _result_to_records(head["result"])
