@@ -6,3 +6,6 @@ __pycache__/
 .git/
 SUBMISSION.md
 egress.compose.yaml
+tests/
+.pytest_cache/
+.github/
