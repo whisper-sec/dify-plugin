@@ -1,6 +1,6 @@
 author: whisper-sec
 name: whisper-agent-identity
-version: 0.2.0
+version: 0.2.1
 type: plugin
 icon: icon.svg
 label:
@@ -17,7 +17,7 @@ plugins:
   tools:
     - provider/whisper.yaml
 meta:
-  version: 0.2.0
+  version: 0.2.1
   arch:
     - amd64
     - arm64
